@@ -6,13 +6,14 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 
 from app.schemas import ActionResult, EntryPayload, PageResult
+from app.services.dispatch import proxy_snapshot
 from app.services.proxyconfig import ProxyconfigService
 
 router = APIRouter(prefix="/api/proxyconfig", tags=["代理调度"])
 
 service = ProxyconfigService()
 
-LIST_FIELDS = ["节点编号", "代理地址", "代理端口", "代理类型", "地理位置", "带宽上限", "认证凭据", "健康状态"]
+LIST_FIELDS = ["节点编号", "代理地址", "代理端口", "代理类型", "地理位置", "带宽上限", "最大连接数", "认证凭据", "健康状态", "承载任务数", "剩余连接数", "可调度"]
 STATUSES = ["草稿", "探测中", "可用", "已下线"]
 
 
@@ -27,7 +28,14 @@ def list_entries(
     if size > 200:
         raise HTTPException(status_code=400, detail="每页最多 200 条，请缩小分页范围")
     items, total = service.list_entries(keyword=keyword, status=status, page=page, size=size)
-    return PageResult(items=items, total=total, page=page, size=size)
+    return PageResult(items=[proxy_snapshot(item) for item in items], total=total, page=page, size=size)
+
+
+@router.get("/export")
+def export_entries() -> dict[str, Any]:
+    """导出代理调度清单：返回当前过滤条件下的全量数据。"""
+    items, total = service.list_entries(page=1, size=10000)
+    return {"module": "proxyconfig", "total": total, "items": items}
 
 
 @router.get("/{entry_id}", response_model=dict)
@@ -56,10 +64,3 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
     if entry is None:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
-
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出代理调度清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "proxyconfig", "total": total, "items": items}

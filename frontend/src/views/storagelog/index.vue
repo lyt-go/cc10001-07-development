@@ -70,7 +70,7 @@ import { request } from '@/api/client'
 type Row = Record<string, string | number | null>
 
 const ENDPOINT = '/api/storagelog'
-const columns = ["日志编号", "关联任务", "开始时间", "结束时间", "请求总数", "成功条数", "失败条数", "平均响应毫秒"]
+const columns = ["日志编号", "关联任务", "目标域名", "出口节点编号", "出口代理地址", "开始时间", "结束时间", "请求总数", "成功条数", "失败条数", "平均响应毫秒"]
 const actions = ["确认记录", "归档日志"]
 const statuses = ["草稿", "已记录", "已归档"]
 const stats = [{"label": "日志记录总数", "value": 0}, {"label": "本月采集次数", "value": 0}, {"label": "平均成功率", "value": 0}]

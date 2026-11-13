@@ -70,7 +70,7 @@ import { request } from '@/api/client'
 type Row = Record<string, string | number | null>
 
 const ENDPOINT = '/api/ratelimiter'
-const columns = ["策略编号", "目标域名", "每秒请求数", "每日请求上限", "并发连接数", "冷却秒数", "触发降级阈值", "生效时段"]
+const columns = ["策略编号", "目标域名", "每秒请求数", "每日请求上限", "并发连接数", "冷却秒数", "触发降级阈值", "生效时段", "调度可用性", "不可用原因", "今日已分配请求", "冷却剩余秒数"]
 const actions = ["提交策略评估", "启用策略", "暂停策略"]
 const statuses = ["草稿", "策略评估中", "已启用", "已暂停"]
 const stats = [{"label": "限速策略总数", "value": 0}, {"label": "已启用策略数", "value": 0}, {"label": "已暂停策略数", "value": 0}]
@@ -101,8 +101,9 @@ async function runAction(action: string, row: Row) {
       method: 'POST',
       body: JSON.stringify({ action }),
     })
-    if (!response.ok) {
-      throw new Error('限速策略动作未生效，请稍后重试')
+    const result = await response.json().catch(() => null)
+    if (!response.ok || result?.ok === false) {
+      throw new Error(result?.message ?? '限速策略动作未生效，请稍后重试')
     }
     await reload()
   } catch (error) {

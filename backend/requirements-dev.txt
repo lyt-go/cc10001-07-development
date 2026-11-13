@@ -1,0 +1,4 @@
+# 开发与测试依赖：在 backend 目录下执行
+#   .venv/bin/pip install -r requirements-dev.txt
+-r requirements.txt
+httpx>=0.27

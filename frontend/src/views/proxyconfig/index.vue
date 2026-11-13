@@ -70,7 +70,7 @@ import { request } from '@/api/client'
 type Row = Record<string, string | number | null>
 
 const ENDPOINT = '/api/proxyconfig'
-const columns = ["节点编号", "代理地址", "代理端口", "代理类型", "地理位置", "带宽上限", "认证凭据", "健康状态"]
+const columns = ["节点编号", "代理地址", "代理端口", "代理类型", "地理位置", "带宽上限", "最大连接数", "认证凭据", "健康状态", "承载任务数", "剩余连接数", "可调度"]
 const actions = ["发起探测", "标记可用", "下线节点"]
 const statuses = ["草稿", "探测中", "可用", "已下线"]
 const stats = [{"label": "代理节点总数", "value": 0}, {"label": "可用节点数", "value": 0}, {"label": "已下线节点数", "value": 0}]
@@ -101,8 +101,9 @@ async function runAction(action: string, row: Row) {
       method: 'POST',
       body: JSON.stringify({ action }),
     })
-    if (!response.ok) {
-      throw new Error('代理调度动作未生效，请稍后重试')
+    const result = await response.json().catch(() => null)
+    if (!response.ok || result?.ok === false) {
+      throw new Error(result?.message ?? '代理调度动作未生效，请稍后重试')
     }
     await reload()
   } catch (error) {

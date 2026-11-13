@@ -70,8 +70,8 @@ import { request } from '@/api/client'
 type Row = Record<string, string | number | null>
 
 const ENDPOINT = '/api/taskcrawl'
-const columns = ["任务编号", "采集源名称", "规则编号", "调度周期", "增量字段", "批次大小", "起始水位", "截止水位"]
-const actions = ["提交调度", "启动任务", "终止任务"]
+const columns = ["任务编号", "采集源名称", "规则编号", "目标域名", "出口可用性", "调度原因", "出口节点编号", "出口代理"]
+const actions = ["提交调度", "启动任务", "完成任务", "终止任务", "报告限速"]
 const statuses = ["草稿", "待调度", "执行中", "已完成", "已终止"]
 const stats = [{"label": "采集任务总数", "value": 0}, {"label": "执行中任务", "value": 0}, {"label": "已完成任务", "value": 0}]
 
@@ -96,14 +96,22 @@ function openCreate() {
 
 async function runAction(action: string, row: Row) {
   errorMessage.value = ''
+  const payload = action === '报告限速'
+    ? { failed: true, reason: '页面手工标记上游限速' }
+    : { action }
+  const path = action === '报告限速'
+    ? `${ENDPOINT}/${row.id}/feedback`
+    : `${ENDPOINT}/${row.id}/actions`
   try {
-    const response = await request(`${ENDPOINT}/${row.id}/actions`, {
+    const response = await request(path, {
       method: 'POST',
-      body: JSON.stringify({ action }),
+      body: JSON.stringify({ values: payload }),
     })
-    if (!response.ok) {
-      throw new Error('采集任务动作未生效，请稍后重试')
+    const result = await response.json().catch(() => null)
+    if (!response.ok || result?.ok === false) {
+      throw new Error(result?.message ?? '采集任务动作未生效，请稍后重试')
     }
+    errorMessage.value = result?.message ?? ''
     await reload()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '采集任务操作失败'
